@@ -50,13 +50,9 @@ I2C_HandleTypeDef hi2c1;
 /* USER CODE BEGIN PV */
 hx711_t loadcell;
 float weight = 0;
-float weight_t = 0;
 float raw = 0;
-float prv_weight = 0;
-
 char str[STR_MAX_LEN];
 bool tare = false;
-bool pcs_mode = false;
 
 
 /* USER CODE END PV */
@@ -109,9 +105,7 @@ int main(void)
   lcd_put_cur(0, 3);
   lcd_send_string("MINI SCALE");
   hx711_init(&loadcell, HX711_CK_GPIO_Port, HX711_CK_Pin, HX711_DATA_GPIO_Port, HX711_DATA_Pin);
-  hx711_calibration(&loadcell, 7994951, 7984997, 24.0); //SAMPLES = 50
-//  hx711_coef_set(&loadcell, -75.6); // read afer calibration
-//  hx711_tare(&loadcell, 10);
+  hx711_calibration(&loadcell, 7994951, 7984997, 24.0);
 
   /* USER CODE END 2 */
 
@@ -128,7 +122,6 @@ int main(void)
 		  tare = false;
 	  }
 	  weight = hx711_weight(&loadcell, 2);
-//	  raw = hx711_value_ave(&loadcell, 10);
 	  if(weight < 0) weight = 0;
 	  sprintf(str, "%.2f", weight);
 	  lcd_put_cur(1, 2);
