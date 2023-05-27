@@ -24,6 +24,7 @@
 #include "i2c-lcd.h"
 #include "HX711.h"
 #include "stdio.h"
+#include "stdbool.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -34,6 +35,8 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define STR_MAX_LEN 7
+#define NUM_SAMPLES 15
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -47,8 +50,15 @@ I2C_HandleTypeDef hi2c1;
 /* USER CODE BEGIN PV */
 hx711_t loadcell;
 float weight = 0;
+float weight_t = 0;
 float raw = 0;
+float prv_weight = 0;
+
 char str[STR_MAX_LEN];
+bool tare = false;
+bool pcs_mode = false;
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -77,7 +87,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+   HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -99,8 +109,8 @@ int main(void)
   lcd_put_cur(0, 3);
   lcd_send_string("MINI SCALE");
   hx711_init(&loadcell, HX711_CK_GPIO_Port, HX711_CK_Pin, HX711_DATA_GPIO_Port, HX711_DATA_Pin);
-  hx711_calibration(&loadcell, 7997114, 7994042, 24);
-//  hx711_coef_set(&loadcell, 500); // read afer calibration  354.5
+  hx711_calibration(&loadcell, 7994951, 7984997, 24.0); //SAMPLES = 50
+//  hx711_coef_set(&loadcell, -75.6); // read afer calibration
 //  hx711_tare(&loadcell, 10);
 
   /* USER CODE END 2 */
@@ -112,15 +122,21 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  HAL_Delay(100);
-	  weight = hx711_weight(&loadcell, 5);
+//	  HAL_Delay(100);
+	  if(tare){
+		  hx711_tare(&loadcell, 2);
+		  tare = false;
+	  }
+	  weight = hx711_weight(&loadcell, 2);
+//	  raw = hx711_value_ave(&loadcell, 10);
+	  if(weight < 0) weight = 0;
 	  sprintf(str, "%.2f", weight);
-	  lcd_put_cur(1, 1);
+	  lcd_put_cur(1, 2);
+	  lcd_send_string("        ");
+	  lcd_put_cur(1, 2);
 	  lcd_send_string(str);
 	  lcd_put_cur(1, 10);
-	  lcd_send_string("GRAM");
-	  raw = hx711_value_ave(&loadcell, 5);
-
+	  lcd_send_string("GAM");
   }
   /* USER CODE END 3 */
 }
@@ -230,14 +246,38 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pins : PA2 PA3 */
   GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_3;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI3_IRQn, 6, 0);
+  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
 
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if(GPIO_Pin == GPIO_PIN_2){
+		lcd_clear();
+		lcd_put_cur(0, 4);
+		lcd_send_string("PCS MODE");
+		pcs_mode = ! pcs_mode;
+		HAL_Delay(700);
+		lcd_clear();
+	}else if(GPIO_Pin == GPIO_PIN_3){ //Tare
+		lcd_clear();
+		lcd_put_cur(0, 5);
+		lcd_send_string("TARED!");
+		if(!tare) tare = true;
+		HAL_Delay(700);
+		lcd_clear();
+	}
+}
 /* USER CODE END 4 */
 
 /**

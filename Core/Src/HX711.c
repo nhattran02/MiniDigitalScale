@@ -73,7 +73,7 @@ int32_t hx711_value(hx711_t *hx711)
     if(HAL_GetTick() - startTime > 150)
       return 0;
   }
-  for(int8_t i=0; i <24 ; i++)
+  for(int8_t i=0; i < 24 ; i++)
   {
     HAL_GPIO_WritePin(hx711->clk_gpio, hx711->clk_pin, GPIO_PIN_SET);
     hx711_delay_us();
@@ -93,52 +93,40 @@ int32_t hx711_value(hx711_t *hx711)
 
 int32_t hx711_value_ave(hx711_t *hx711, uint16_t sample)
 {
-  hx711_lock(hx711);
   int64_t  ave = 0;
   for(uint16_t i=0 ; i<sample ; i++)
   {
     ave += hx711_value(hx711);
-    hx711_delay(5);
   }
   int32_t answer = (int32_t)(ave / sample);
-  hx711_unlock(hx711);
   return answer;
 }
 
 void hx711_tare(hx711_t *hx711, uint16_t sample)
 {
-  hx711_lock(hx711);
   int64_t  ave = 0;
   for(uint16_t i=0 ; i < sample ; i++)
   {
     ave += hx711_value(hx711);
-    hx711_delay(5);
   }
   hx711->offset = (int32_t)(ave / sample);
-  hx711_unlock(hx711);
 }
 
 void hx711_calibration(hx711_t *hx711, int32_t noload_raw, int32_t load_raw, float scale)
 {
-  hx711_lock(hx711);
   hx711->offset = noload_raw;
   hx711->coef = (load_raw - noload_raw) / scale;
-  hx711_unlock(hx711);
 }
 
 float hx711_weight(hx711_t *hx711, uint16_t sample)
 {
-  hx711_lock(hx711);
   int64_t  ave = 0;
   for(uint16_t i=0 ; i<sample ; i++)
   {
     ave += hx711_value(hx711);
-    hx711_delay(2);
   }
   int32_t data = (int32_t)(ave / sample);
-  float answer =  (data - hx711->offset) / hx711->coef;
-  hx711_unlock(hx711);
-  return answer;
+  return (data - hx711->offset) / hx711->coef;
 }
 
 void hx711_coef_set(hx711_t *hx711, float coef)
@@ -162,6 +150,5 @@ void hx711_power_up(hx711_t *hx711)
 {
   HAL_GPIO_WritePin(hx711->clk_gpio, hx711->clk_pin, GPIO_PIN_RESET);
 }
-
 
 
