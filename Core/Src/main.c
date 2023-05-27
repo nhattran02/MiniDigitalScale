@@ -116,7 +116,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-//	  HAL_Delay(100);
 	  if(tare){
 		  hx711_tare(&loadcell, 2);
 		  tare = false;
